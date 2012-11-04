@@ -1,7 +1,7 @@
 Hurricane Sandy on Flickr
 ===========
 
-A site visualizing the use of Flickr tags related to [Hurricane Sandy](http://en.wikipedia.org/wiki/Hurricane_Sandy). It enables users to explore photos taken at before, during and shortly after the hurricane.
+A site visualizing the use of Flickr tags related to [Hurricane Sandy](http://en.wikipedia.org/wiki/Hurricane_Sandy). It enables users to explore photos taken at before, during and shortly after the hurricane. Created as a project for [IO Lab, Fall 2012](http://courses.ischool.berkeley.edu/i290-iol/f12/).
 
 ## Project Team and Roles
 
