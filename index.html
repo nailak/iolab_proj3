@@ -3,40 +3,20 @@
 <head>
   <title>IO LAB</title>
   <!-- Bootstrap -->
-  <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+  <!-- <link href="css/bootstrap.min.css" rel="stylesheet" media="screen"> -->
   <script src="http://code.jquery.com/jquery-latest.js"></script>
-  <script src="js/bootstrap.min.js"></script>
+  <!-- // <script src="js/bootstrap.min.js"></script> -->
   <!-- <link href="../assets/css/bootstrap.css" rel="stylesheet"> -->
+  <link rel="stylesheet" href="style.css">
   <style type="text/css">
-    body {
-      padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
-    }
-    .picture{
-      margin: 5px; display: inline-block;
-    }
-
-    /* Set the fixed height of the footer here */
-    #push,#footer {
-      height: 60px;
-      padding-top: 10px;
-     }
-    #footer{ 
-      background-color: #f5f5f5;
-    }
-    /* Lastly, apply responsive CSS fixes as necessary */
-    @media (max-width: 767px) {
-      #footer {
-        margin-left: -20px;
-        margin-right: -20px;
-        padding-left: 20px;
-        padding-right: 20px;
-      }
-    }
-
   </style>
 
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
     <script type="text/javascript">
+    //TO DO: 1) correct search API call (must match tag and date of selected data point)
+    //       2) add map (google viz)
+    //       3) Images should expand when user hovers? or open iframe?
+       
       // Google Chart Visualization: Line Chart 
       // https://google-developers.appspot.com/chart/interactive/docs/gallery/linechart
       // ==============================================================================
@@ -52,17 +32,15 @@
           ['Nov 1',   2245, 2069, 2913,2082, 2349]
         ]);
 
-        var options = {
-          title: '#Sandy on Flickr'
-        };
+        var options = {  title: '#Sandy on Flickr'};
 
         var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
         chart.draw(data, options);
         chrt=chart;
         dta=data;
-        console.log(dta);
-        console.log(chart);
-        console.log(chart.getSelection());
+        // console.log(dta);
+        // console.log(chart);
+        // console.log(chart.getSelection());
 
         // Every time the chart fires the "select" event, it should call the
         // selectHandler() function.
@@ -78,94 +56,142 @@
             alert('The user selected ' + value+ " ((ROW:"+selectedItem.row+" COL:"+selectedItem.column+" )) TAG: "+ dataPointTags+ "  DATE:"+date);
             console.log('>>STATUS: data point clicked: '+value+'   '+dataPointTags)
             
-            getDataPointImages(dataPointTags); //call function 
+            getDataPointImages(dataPointTags,date); //call function 
             
           }
         }
       }
 
-    //making the datapoints clickable (show related pictures from flickr)
-    // $(document).ready(function(){
+    //Flickr Search API: call the image IDs that match the selected data point
+    //========================================================================
     //global variables 
     var apiKey='8ec893d32fd65f1adef810ce04f744b5';
     // var dataPointTags='sandy%2C+rain'
     var pictureIDs=[];//IDs of pictures related to the clicked data point
     var stringIDs='';
+    var dateDict={'Oct 28':'20121028','Oct 29':'20121029','Oct 30':'20121030','Oct 31':'20121031','Nov 1':'20121101'}
     console.log('>>STATUS: vars instantiated, document ready..');
 
     //function that calls the Flickr search API and returns photo IDs related to the tags that are clicked on the graph
     //NOTE: need to get this to detect clicked date value as well
-    function getDataPointImages(dataPointTags){
-      var formatTags='sandy%2C+'+dataPointTags;
-      console.log('>>STATUS: getting dp ..argument tags= '+formatTags);
+    function getDataPointImages(dataPointTags,date){
+      var formatTags='sandy%2C+'+dataPointTags;//add the tag sandy
+      var dateVal=dateDict[date];//format date so API can understand it
+      console.log('>>STATUS: getting dp ..argument tags= '+formatTags+" AND date "+dateVal);
       //REFERENCE for using nojsoncallback=1 in the API call is http://stackoverflow.com/questions/1741510/jquery-getjson-never-enters-its-callback-function
-      $.getJSON('http://api.flickr.com/services/rest/?method=flickr.photos.search&api_key='+apiKey+'&tags='+dataPointTags+'&tag_mode=AND&min_taken_date=20121028&format=json&nojsoncallback=1', 
+      $.getJSON('http://api.flickr.com/services/rest/?method=flickr.photos.search&api_key='+apiKey+'&tags='+dataPointTags+'&tag_mode=AND&min_taken_date='+dateVal+'&format=json&nojsoncallback=1', 
         function(json){
-          console.log('>>STATUS: in getDataPointImages(): Calling searct API, json object returned for arguments:'+dataPointTags);
+          console.log('>>STATUS: in getDataPointImages(): Calling searct API, json object returned for arguments:'+dataPointTags+date+ 'and the returned photos are: ');
           var photoObjs=json.photos.photo;//drill down to photo objects
           console.log(json);
-          // console.log(photoObjs);
+          
+          //add the 1st 18 IDs to the global var stringIDs 
+          for (var i in photoObjs){
+            if ( i < 10 ){
+              console.log('below10..');
+              stringIDs+=(photoObjs[i].id+',');}
+            else {console.log('after10..')};
+          } 
+
           //add IDs to a global array
           for (var i in photoObjs){pictureIDs.push(photoObjs[i].id);} 
-          //add IDs to a global string 
-          for (var i in photoObjs){stringIDs+=(photoObjs[i].id+',');} 
-          console.log('>>STATUS: IDs added to string: '+stringIDs);
+          console.log('>>STATUS: IDs added to Array');
 
           //clear the pictures div element 
           $('#pix').children().remove();
+          
           //download the new images from flickr (relevent to clicked data point)
-          downloadImg(stringIDs,dataPointTags);
+          downloadImg(stringIDs,dataPointTags,dateVal);
+          //get link for each image ID in the array
+          // for (var i in pictureIDs){getImgInfo()}
+          getImgInfo('8177075217');  
+
         } 
       );
     }
-    //use the public feed to show images with the specified tags (using their links)
-    //problem: no option to set date
-    //other possible solution: use the photo info API
-    function downloadImg(photoIDs,tagsArg) {
+    //Flickr Feed: use the public feed to show images with the specified tags 
+    //========================================================================
+    //problem: this doesnt work by specifying photo IDs, it only works for tags
+ 
+    function downloadImg(photoIDs,tagsArg,dateArg) {
       var allTags=tagsArg+', sandy';
-    $.getJSON("http://api.flickr.com/services/feeds/photos_public.gne?jsoncallback=?",
-        {ids : '', tags: allTags,tagmode: "and",format: "json", }, 
+    $.getJSON("http://api.flickr.com/services/feeds/photos_public.gne?ids=&tags="+allTags+"&tagmode=and&format=json&jsoncallback=?",
+      // $.getJSON("http://api.flickr.com/services/feeds/photos_public.gne?id=8177075217&tags=&tagmode=&format=json&jsoncallback=?",
         function(obj){
           console.log('>>STATUS: in downloadImg(): printing data from download image call for tags: '+allTags);
           console.log(obj);
+          //append header
+          $('#pix').append("<p>Tags: "+allTags+" - Date: "+dateArg+"</p>");
           //append flickr images to the #pix div element 
           $.each(obj.items, function(i,item){
-            $("<img/>").attr({ src: (item.media.m).replace("_m.jpg", "_s.jpg"),href: item.link,alt: item.title+', '+item.date_taken,}).appendTo("#pix").wrap("<div class='picture'><a rel='external' href=\""+item.link+"\"></a></div>");
+            $("<img/>").attr({ 
+              src: (item.media.m).replace("_m.jpg", "_s.jpg"),
+              href: item.link,
+              alt: item.title+', '+item.date_taken,
+            }).appendTo("#pix").wrap("<div class='picture'><a rel='external' href=\""+item.link+"\"></a></div>");
 
-            if ( i == 10 ) return false;
+            if ( i == 17 ) return false;
             });
           });
         }
-  // });
+
+    //other possible solution: use the photo info API (new call for each photo)
+    //problem here is that the image thumb wont render.. error:
+    //Resource interpreted as Image but transferred with MIME type text/html
+    function getImgInfo(photoIDs,tagsArg,dateArg){
+      var allTags=tagsArg+', sandy';
+      $.getJSON("http://api.flickr.com/services/rest/?method=flickr.photos.getInfo&api_key="+apiKey+"&photo_id=8177075217&format=json&nojsoncallback=1",
+        function(json){
+          console.log(json);
+          console.log('WORKS');
+          var photoID=json.photo.id;
+          var photoTitle=json.photo.title._content;
+          var photoLink=json.photo.urls.url[0]._content;
+          
+          $('#pix').append("<p>Tags: "+allTags+" - Date: "+dateArg+"</p>");
+          console.log('tilte: &Link:');
+          console.log(photoTitle);
+          console.log(photoLink);
+          $("<img/>").attr({ 
+              src: photoLink,
+              // (item.media.m).replace("_m.jpg", "_s.jpg"),
+              href: photoLink,
+              alt: photoTitle,
+            }).appendTo("#pix").wrap("<div class='picture'><a rel='external' href=\""+photoLink+"\"></a></div>");
+        });
+      
+    }
 
     </script>
-
-
 </head>
 <body>
 
-   <div class="navbar navbar-inverse navbar-fixed-top">
-    <div class="navbar-inner">
-      <div class="container">
-      <a class="brand" href="#">IO Lab Project 3</a>
-      </div>
-    </div>
+  <div id="header_container" class="shadow">  
+    <h3 class="container">IO Lab Project 3: Tagging Sandy</h3>
   </div>
 
   <div class="container">
-    <h3>Tagging Sandy</h3>
-    <p>Visualizing tags from Flickr. Click a data point to see related images.</p>
-    <!-- Google chart: line chart -->
-    <div id="chart_div" style="width: 800px; height: 400px;"></div>
-  </div> <!-- /container -->
+    <!-- Line chart box -->
+    <div class="two-thirds column">
+      <div class="box_header"><h3>Tags Over Time</h3></div>
+      <div class="box_body">
+        <p>Click a data point to see related images.</p>
+        <div id="chart_div" style="width: 600px; height: 300px;"></div>
+      </div>
+      <!-- map box-->
+      <div class="box_header"><h3>Mapping Sandy</h3></div>
+      <div class="box_body"><p>Click datapoint to view map.</p></div>
+    </div> 
 
-  <!-- pictures -->
-  <div id="pix" class="container"></div>
+    <!-- pictures box-->
+    <div class="one-third column">
+      <div class="box_header"><h3>Flickr Photos</h3></div>
+      <div id="pix" class="box_body"><p>Click datapoint to view photos.</p></div>
+    </div>
+  <div>
   
   <!-- <div id="footer">
-    <div class="container">
-      <p class="muted credit">By x and y.</p>
-    </div>
+    <div class="container"><p class="muted credit">By x and y.</p></div>
   </div> -->
 
 </body>
