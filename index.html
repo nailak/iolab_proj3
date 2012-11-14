@@ -59,7 +59,28 @@
           }
         }
       }
+    //Google viz: Map
+    //=========================================================
+    google.load('visualization', '1', {'packages': ['geochart']});
+    google.setOnLoadCallback(drawMarkersMap);
 
+    function drawMarkersMap() {
+    var data = google.visualization.arrayToDataTable([
+      ['City',   'Tag counts', 'Area'],
+      ['United States',      2761477,    1285.31],
+      ['California,Reno NV,811,200811',  38262,      11]
+    ]);
+
+    var options = {
+      region: 'US',
+      displayMode: 'markers',
+      colorAxis: {colors: ['green', 'red']}
+    };
+
+    var chart = new google.visualization.GeoChart(document.getElementById('map_div'));
+    chart.draw(data, options);
+    };
+    //========================================================================
     //global variables 
     var apiKey='8ec893d32fd65f1adef810ce04f744b5';
     var pictureIDs=[];//Array for IDs of pictures related to the clicked data point
@@ -109,6 +130,8 @@
         } 
       );
     }
+
+
     //Flickr Feed: use the public feed to show images with the specified tags.  
     //========================================================================
     //http://www.flickr.com/services/feeds/docs/photos_public/
@@ -213,7 +236,9 @@
       </div>
       <!-- map box-->
       <div class="box_header"><h3>Mapping Sandy</h3></div>
-      <div class="box_body"><p>Click datapoint to view map.</p></div>
+      <div class="box_body"><p>Click datapoint to view map.</p>
+        <div id="map_div" style="width: 500px; height: 300px;"></div>
+      </div>
     </div> 
 
     <div class="one-third column">
