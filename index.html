@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IO LAB</title>
+  <script src="http://code.jquery.com/jquery-latest.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <style type="text/css">
+  </style>
+
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+  <script type="text/javascript">
+    // Google Chart Visualization: Line Chart 
+    // https://google-developers.appspot.com/chart/interactive/docs/gallery/linechart
+    // ==============================================================================
+    google.load("visualization", "1", {packages:["corechart"]});
+    google.setOnLoadCallback(drawChart);
+    function drawChart() {
+      var data = google.visualization.arrayToDataTable([
+        ['Day', 'rain', 'flood','flooding','trees','power'],
+        ['Oct 28',  133,36,84,20,13],
+        ['Oct 29',  536,273,429,252,29],
+        ['Oct 30',  484,890,610,368,162],
+        ['Oct 31',  277,338,153,25,284],
+        ['Nov 1',   43,313,86,26,152]
+      ]);
+
+      var options = {  title: '#Sandy on Flickr'};
+
+      var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+      chart.draw(data, options);
+      chrt=chart;
+      dta=data;
+      // console.log(dta);
+      // console.log(chart);
+      // console.log(chart.getSelection());
+
+      // Every time the chart fires the "select" event, it should call the
+      // selectHandler() function.
+      google.visualization.events.addListener(chart, 'select', selectHandler);
+
+      function selectHandler(e) {
+        var selectedItem = chart.getSelection()[0];
+        if (selectedItem) {
+          var value = data.getValue(selectedItem.row, selectedItem.column);
+          var date=data.getValue(selectedItem.row,0)
+          var dataPointTags=data.getColumnLabel(selectedItem.column);
+
+          // alert('The user selected ' + value+ " ((ROW:"+selectedItem.row+" COL:"+selectedItem.column+" )) TAG: "+ dataPointTags+ "  DATE:"+date);
+          console.log('>>STATUS: data point clicked: '+value+'   '+dataPointTags)
+          
+          getDataPointImages(dataPointTags,date); //call function 
+            
+          }
+        }
+      }
+    //Google viz: Map
+    //=========================================================
+    google.load('visualization', '1', {'packages': ['geochart']});
+    google.setOnLoadCallback(drawMarkersMap);
+
+    function drawMarkersMap() {
+    var data = google.visualization.arrayToDataTable([
+      ['City',   'Tag counts', 'Area'],
+      ['United States',      2761477,    1285.31],
+      ['California,Reno NV,811,200811',  38262,      11]
+    ]);
+
+    var options = {
+      region: 'US',
+      displayMode: 'markers',
+      colorAxis: {colors: ['green', 'red']}
+    };
+
+    var chart = new google.visualization.GeoChart(document.getElementById('map_div'));
+    chart.draw(data, options);
+    };
+
+    //global variables 
+    var apiKey='8ec893d32fd65f1adef810ce04f744b5';
+    var pictureIDs=[];//Array for IDs of pictures related to the clicked data point
+    var stringIDs=''; //String for IDs of pictures related to the clicked data point
+    var dateDict={'Oct 28':'2012-10-28','Oct 29':'2012-10-29','Oct 30':'2012-10-30','Oct 31':'2012-10-31','Nov 1':'2012-11-01'}
+    console.log('>>STATUS: Click a data point..');
+
+    //flickr.photos.search: find the image IDs that match the selected data point
+    //http://www.flickr.com/services/api/explore/flickr.photos.search
+    //======================================================================== 	
+    //function that calls the Flickr search API and returns photo IDs related to the tags that are clicked on the graph
+   function getDataPointImages(dataPointTags,date){
+      var formatTags='sandy%2C+'+dataPointTags;//add the tag sandy
+      var dateVal=dateDict[date];//format date so API can understand it
+      console.log('>>STATUS: getDataPointImages() arguments: tags= '+formatTags+" AND date "+dateVal);
+      // Reference for using nojsoncallback=1 in the API call is http://stackoverflow.com/questions/1741510/jquery-getjson-never-enters-its-callback-function
+      	$.getJSON('http://api.flickr.com/services/rest/?method=flickr.photos.search&api_key='+apiKey+'&tags='+formatTags+'&tag_mode=all&min_taken_date='+dateVal+'%2001%3a00%3a01&max_upload_date='+dateVal+'%2023%3a59%3a59&format=json&nojsoncallback=1', 
+        function(json){
+          var photoObjs=json.photos.photo;//drill down to photo objects
+          console.log(json);
+
+          //clear the pictures div element 
+          $('#pix').children().remove();
+
+          var allTags=dataPointTags+', sandy';
+          $('#pix').append("<p>Tags: "+allTags+"</p>");
+
+          //add 18 IDs to string var and array var
+          for (var i in photoObjs){
+            if ( i < 17 ){
+              stringIDs+=(photoObjs[i].id+',');
+              pictureIDs.push(photoObjs[i].id);
+							photoSrc = 'http://farm'+photoObjs[i].farm+'.staticflickr.com/'+photoObjs[i].server+'/'+photoObjs[i].id+'_'+photoObjs[i].secret+'_s.jpg';
+							photoTitle = photoObjs[i].title;
+							photoLink = 'http://flickr.com/'+photoObjs[i].owner+'/'+photoObjs[i].id;
+
+							$("<img/>").attr({ 
+		              src: photoSrc,
+		              alt: photoTitle,
+		            }).appendTo("#pix").wrap("<div class='picture'><a rel='external' href=\""+photoLink+"\"></a></div>");
+            }
+          } 
+
+          console.log('>>STATUS: IDs added to Array and String..');
+          console.log(pictureIDs);console.log(stringIDs);
+        } 
+      );
+    }
+
+    //Image click opens preview in iframe
+    //===================================
+    //when user clicks a photo, iframe opens to show original image on Flickr
+    $(document).ready(function(){
+      //event listner for clicking on
+      $("#pix").on('click','.picture a', function(x){
+          //stop default action
+          x.preventDefault();
+          console.log('>>STATUS: iframe link clicked');
+          //clear previous div iframe element 
+          $('#iframe').remove();
+          //get the URL from the clicked target
+          var targetURL = $(this).attr('href');
+          console.log($(this).attr('href'));
+          //append div element that contains 'loading' text and iframe
+          //use targetURL variable to display currently selected link in iframe
+          $("body").append("\
+              <div id='iframe'>\
+                  <div id='iframe_veil' style=''>\
+                      <p>Loading...</p>\
+                  </div>\
+                  <iframe src= '"+targetURL+"' onload=\"$('#iframe iframe').slideDown(500);\">preview webpage</iframe>\
+              </div>");
+          //fade in overlay on trailmaker page
+          $("#iframe_veil").fadeIn(850);
+          //remove iframe once user clicks outside it (bg veil)
+          $("#iframe_veil").click(function(event){
+						$("#iframe_veil").fadeOut(850);
+						$("#iframe iframe").slideUp(800);
+          });
+          //dont refresh
+          return false;
+      });
+    });//end doc ready
+
+    </script>
+</head>
+<body>
+
+  <div id="header_container" class="shadow">  
+    <h3 class="container">IO Lab Project 3: Tagging Sandy</h3>
+  </div>
+
+  <div class="container">
+    <!-- Line chart box -->
+    <div class="two-thirds column">
+      <div class="box_header"><h3>Tags Over Time</h3></div>
+      <div class="box_body">
+        <p>Click a data point to see related images.</p>
+        <div id="chart_div" style="width: 600px; height: 300px;"></div>
+      </div>
+      <!-- map box-->
+      <div class="box_header"><h3>Mapping Sandy</h3></div>
+      <div class="box_body"><p>Click datapoint to view map.</p>
+        <div id="map_div" style="width: 500px; height: 300px;"></div>
+      </div>
+    </div> 
+
+    <div class="one-third column">
+      <!-- pictures box-->
+      <div class="box_header"><h3>Flickr Photos</h3></div>
+      <div id="pix" class="box_body"><p>Click datapoint to view photos.</p></div>
+    </div>
+  <div>
+
+</body>
+</html>
