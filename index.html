@@ -9,12 +9,6 @@
 
   <script type="text/javascript" src="https://www.google.com/jsapi"></script>
   <script type="text/javascript">
-    //////////////////////////////////////////////////////////////////////////////////
-    //TO DO: 1) correct search API call to match BOTH tags AND date of selected data point
-    //       2) add map (google viz)??
-    //////////////////////////////////////////////////////////////////////////////////
-
-       
     // Google Chart Visualization: Line Chart 
     // https://google-developers.appspot.com/chart/interactive/docs/gallery/linechart
     // ==============================================================================
@@ -36,9 +30,6 @@
       chart.draw(data, options);
       chrt=chart;
       dta=data;
-      // console.log(dta);
-      // console.log(chart);
-      // console.log(chart.getSelection());
 
       // Every time the chart fires the "select" event, it should call the
       // selectHandler() function.
@@ -55,7 +46,6 @@
           console.log('>>STATUS: data point clicked: '+value+'   '+dataPointTags)
           
           getDataPointImages(dataPointTags,date); //call function 
-            
           }
         }
       }
@@ -64,103 +54,51 @@
     var apiKey='8ec893d32fd65f1adef810ce04f744b5';
     var pictureIDs=[];//Array for IDs of pictures related to the clicked data point
     var stringIDs=''; //String for IDs of pictures related to the clicked data point
-    var dateDict={'Oct 28':'20121028','Oct 29':'20121029','Oct 30':'20121030','Oct 31':'20121031','Nov 1':'20121101'}
+    var dateDict={'Oct 28':'2012-10-28','Oct 29':'2012-10-29','Oct 30':'2012-10-30','Oct 31':'2012-10-31','Nov 1':'2012-11-01'}
     console.log('>>STATUS: Click a data point..');
 
     //flickr.photos.search: find the image IDs that match the selected data point
     //http://www.flickr.com/services/api/explore/flickr.photos.search
-    //========================================================================
-    //function that calls the Flickr search API and returns photo IDs related to the tags that are clicked on the graph. This fucntion may not be needed anymore and does not return images with BOTH tags for some reason 
+    //======================================================================== 	
+    //function that calls the Flickr search API and returns photo IDs related to the tags that are clicked on the graph
    function getDataPointImages(dataPointTags,date){
-			console.log('we are here')
       var formatTags='sandy%2C+'+dataPointTags;//add the tag sandy
       var dateVal=dateDict[date];//format date so API can understand it
       console.log('>>STATUS: getDataPointImages() arguments: tags= '+formatTags+" AND date "+dateVal);
-      //REFERENCE for using nojsoncallback=1 in the API call is http://stackoverflow.com/questions/1741510/jquery-getjson-never-enters-its-callback-function
-      $.getJSON('http://api.flickr.com/services/rest/?method=flickr.photos.search&api_key='+apiKey+'&tags='+formatTags+'&tag_mode=AND&min_taken_date='+dateVal+'&format=json&nojsoncallback=1', 
+      // Reference for using nojsoncallback=1 in the API call is http://stackoverflow.com/questions/1741510/jquery-getjson-never-enters-its-callback-function
+      	$.getJSON('http://api.flickr.com/services/rest/?method=flickr.photos.search&api_key='+apiKey+'&tags='+formatTags+'&tag_mode=all&min_taken_date='+dateVal+'%2001%3a00%3a01&max_upload_date='+dateVal+'%2023%3a59%3a59&format=json&nojsoncallback=1', 
         function(json){
           var photoObjs=json.photos.photo;//drill down to photo objects
           console.log(json);
-          
-          //add 18 IDs to string var and array var
-          for (var i in photoObjs){
-            if ( i < 17 ){
-              stringIDs+=(photoObjs[i].id+',');
-              pictureIDs.push(photoObjs[i].id);
-            }
-          } 
-         
-          console.log('>>STATUS: IDs added to Array and String..');
-          console.log(pictureIDs);console.log(stringIDs);
-
+ 
           //clear the pictures div element 
           $('#pix').children().remove();
           
           var allTags=dataPointTags+', sandy';
           $('#pix').append("<p>Tags: "+allTags+"</p>");
+         
+          //add 18 IDs to string var and array var
+          for (var i in photoObjs){
+            if ( i < 17 ){
+              stringIDs+=(photoObjs[i].id+',');
+              pictureIDs.push(photoObjs[i].id);
+							photoSrc = 'http://farm'+photoObjs[i].farm+'.staticflickr.com/'+photoObjs[i].server+'/'+photoObjs[i].id+'_'+photoObjs[i].secret+'_s.jpg';
+							photoTitle = photoObjs[i].title;
+							photoLink = 'http://flickr.com/'+photoObjs[i].owner+'/'+photoObjs[i].id;
 
-          //Now that we have all the image IDs, we need to show thumbnails
-          //OPTION 1: get photos from flickr feed (problem is theres no date arg)
-          downloadImg(allTags);
-          //OPTION2: get info for each photo ID that we found (photos are date specific)
-          // for (var i in pictureIDs){console.log('Calling imgInfo for ID#'+pictureIDs[i]);getImgInfo(pictureIDs[i])}
-          //single image call for testing
-          // getImgInfo('8177075217');  
-
+							$("<img/>").attr({ 
+		              src: photoSrc,
+		              alt: photoTitle,
+		            }).appendTo("#pix").wrap("<div class='picture'><a rel='external' href=\""+photoLink+"\"></a></div>");
+            }
+          } 
+         
+          console.log('>>STATUS: IDs added to Array and String..');
+          console.log(pictureIDs);console.log(stringIDs);
         } 
       );
     }
-    //Flickr Feed: use the public feed to show images with the specified tags.  
-    //========================================================================
-    //http://www.flickr.com/services/feeds/docs/photos_public/
-    //problem: this doesnt work by specifying photo IDs, it only works for tags
- 
-    function downloadImg(allTags) {
-    $.getJSON("http://api.flickr.com/services/feeds/photos_public.gne?ids=&tags="+allTags+"&tagmode=and&format=json&jsoncallback=?",
-        function(obj){
-          console.log('>>STATUS: downloadImg(): download image call for tags: '+allTags);
-          console.log(obj);
-          //append flickr images to the #pix div element 
-          $.each(obj.items, function(i,item){
-            $("<img/>").attr({ 
-              src: (item.media.m).replace("_m.jpg", "_s.jpg"),
-              href: item.link,
-              alt: item.title+', '+item.date_taken,
-            }).appendTo("#pix").wrap("<div class='picture'><a rel='external' href=\""+item.link+"\"></a></div>");
-            //limit photos to 17
-            if ( i == 17 ) return false;
-            });
-          });
-        }
 
-    //flickr.photos.getInfo API: (other possible solution: 
-    //http://www.flickr.com/services/api/flickr.photos.getInfo.html
-    //========================================================================
-    //problem here is that the image thumb wont render and a separate call is needed for each image
-    //error: Resource interpreted as Image but transferred with MIME type text/html
-    function getImgInfo(photoIDs){
-      // var allTags=tagsArg+', sandy';
-      $.getJSON("http://api.flickr.com/services/rest/?method=flickr.photos.getInfo&api_key="+apiKey+"&photo_id="+photoIDs+"&format=json&nojsoncallback=1",
-        function(json){
-          console.log('>>STATUS: in getImgInfo() for photo ID#'+photoIDs);
-          console.log(json);
-          
-          var photoID=json.photo.id;
-          var photoTitle=json.photo.title._content;
-          var photoLink=json.photo.urls.url[0]._content;
-          
-          console.log('tilte: &Link:');
-          console.log(photoTitle,photoLink);
-          
-          $("<img/>").attr({ 
-              src: photoLink,//can we get this to point to a thumbnail instead?
-              // (item.media.m).replace("_m.jpg", "_s.jpg"),
-              href: photoLink,
-              alt: photoTitle,
-            }).appendTo("#pix").wrap("<div class='picture'><a rel='external' href=\""+photoLink+"\"></a></div>");
-        });
-      
-    }
     //Image click opens preview in iframe
     //===================================
     //when user clicks a photo, iframe opens to show original image on Flickr
@@ -188,8 +126,8 @@
           $("#iframe_veil").fadeIn(850);
           //remove iframe once user clicks outside it (bg veil)
           $("#iframe_veil").click(function(event){
-                  $("#iframe_veil").fadeOut(850);
-                  $("#iframe iframe").slideUp(800);
+						$("#iframe_veil").fadeOut(850);
+						$("#iframe iframe").slideUp(800);
           });
           //dont refresh
           return false;
@@ -223,7 +161,6 @@
       <div id="pix" class="box_body"><p>Click datapoint to view photos.</p></div>
     </div>
   <div>
-  
 
 </body>
 </html>
