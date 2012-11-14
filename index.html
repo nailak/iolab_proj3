@@ -22,12 +22,12 @@
     google.setOnLoadCallback(drawChart);
     function drawChart() {
       var data = google.visualization.arrayToDataTable([
-        ['Day', 'rain', 'flood','trees','flooding','power'],
-        ['Oct 28',  2537, 2030, 3278,2007,2084],
-        ['Oct 29',  7696, 7457, 7933,7461,7354],
-        ['Oct 30',  11040,10745,11473,10403,10490],
-        ['Oct 31',  3960, 3648, 4591,3653,3725],
-        ['Nov 1',   2245, 2069, 2913,2082, 2349]
+        ['Day', 'rain', 'flood','flooding','trees','power'],
+        ['Oct 28',  133,36,84,20,13],
+        ['Oct 29',  536,273,429,252,29],
+        ['Oct 30',  484,890,610,368,162],
+        ['Oct 31',  277,338,153,25,284],
+        ['Nov 1',   43,313,86,26,152]
       ]);
 
       var options = {  title: '#Sandy on Flickr'};
@@ -72,6 +72,7 @@
     //========================================================================
     //function that calls the Flickr search API and returns photo IDs related to the tags that are clicked on the graph. This fucntion may not be needed anymore and does not return images with BOTH tags for some reason 
    function getDataPointImages(dataPointTags,date){
+			console.log('we are here')
       var formatTags='sandy%2C+'+dataPointTags;//add the tag sandy
       var dateVal=dateDict[date];//format date so API can understand it
       console.log('>>STATUS: getDataPointImages() arguments: tags= '+formatTags+" AND date "+dateVal);
